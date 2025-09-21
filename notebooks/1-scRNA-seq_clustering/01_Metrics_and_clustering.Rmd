@@ -1,0 +1,230 @@
+---
+title: "Metrics, metadata annotation and clustering"
+output:
+  html_notebook: 
+    theme: cosmo
+    highlight: pygments
+---
+
+```{r, warning=FALSE, message=FALSE}
+# Load resources. Libraries, paths, functions, themes.
+source(file.path("..", "..", "scripts", "config.R"))
+```
+
+```{r}
+# Read merged dataset
+merge_at_nema <- readRDS(ATH_DATA_PATH)
+merge_os_nema <- readRDS(OSA_DATA_PATH)
+```
+
+```{r}
+# Assign metadata and factor levels for plots
+merge_at_nema@meta.data <- merge_at_nema@meta.data %>%
+  mutate(Replicate = case_when(
+    orig.ident %in% c("MSS004", "MSS003") ~ "R1",
+    orig.ident %in% c("MSS005", "MSS006") ~ "R2",
+    orig.ident %in% c("MSS011", "MSS012") ~ "R3"
+  )) %>%
+  mutate(Treatment = case_when(
+    orig.ident %in% c("MSS004", "MSS006", "MSS011") ~ "Mock",
+    orig.ident %in% c("MSS003", "MSS005", "MSS012") ~ "Infected"
+  )) %>%
+  mutate(Treatment = fct_relevel(Treatment, c("Mock", "Infected"))) %>%
+  mutate(Replicate = fct_relevel(Replicate, c("R1", "R2", "R3"))) %>%
+  mutate(Cell_type = case_when(
+    annotation.predicted == "Lateral root cap" ~ "LRC",
+    annotation.predicted == "QC" ~ "SC",
+    TRUE ~ annotation.predicted
+  )) %>%
+  mutate(Cell_type = fct_relevel(Cell_type, c(
+    "Columella", "LRC", "SC", "Initials", "Epidermis", "Trichoblast",
+    "Atrichoblast",
+    "Cortex", "Endodermis", "Pericycle", "Procambium",
+    "Phloem", "Xylem"
+  )))
+
+# Assign metadata and factor levels for plots
+merge_os_nema@meta.data <- merge_os_nema@meta.data %>%
+  mutate(Replicate = case_when(
+    orig.ident %in% c("MSS007", "MSS008") ~ "R1",
+    orig.ident %in% c("MSS009", "MSS010") ~ "R2",
+    orig.ident %in% c("MSS013", "MSS014") ~ "R3",
+    orig.ident == "MSS001" ~ "R0"
+  )) %>%
+  mutate(Replicate = fct_relevel(Replicate, c("R0", "R1", "R2", "R3"))) %>%
+  mutate(Treatment = case_when(
+    orig.ident %in% c(
+      "MSS001", "MSS007", "MSS009",
+      "MSS013"
+    ) ~ "Mock",
+    orig.ident %in% c(
+      "MSS008", "MSS010",
+      "MSS014"
+    ) ~ "Infected"
+  )) %>%
+  mutate(Treatment = fct_relevel(Treatment, c("Mock", "Infected")))
+
+
+ath_treat <- DimPlot(merge_at_nema,
+  group.by = "Treatment",
+  shuffle = TRUE, cols = cols_treat
+)
+osa_treat <- DimPlot(merge_os_nema,
+  group.by = "Treatment",
+  shuffle = TRUE, cols = cols_treat
+)
+grid.arrange(ath_treat, osa_treat, ncol = 2)
+```
+
+### *Arabidopsis* metrics and clustering
+
+#### Metrics
+
+```{r, fig.height=3,fig.width=12, message=FALSE,warning=FALSE}
+# Stats per replicate
+at_stats <- merge_at_nema@meta.data %>%
+  select(nCount_RNA, nFeature_RNA, Treatment, Replicate)
+
+mean_umi <- at_stats %>%
+  group_by(Treatment, Replicate) %>%
+  summarise(mean = round(mean(nCount_RNA)))
+
+plot_umi_at <- ggplot(at_stats, aes(x = Replicate, y = nCount_RNA, fill = Treatment)) +
+  scale_y_continuous(trans = "log10") +
+  geom_violin(linewidth = 0.2, position = position_dodge(width = 0.8), width = .6) +
+  geom_boxplot(outlier.size = 0.2, linewidth = 0.1, width = .1, position = position_dodge(width = 0.8)) +
+  geom_text(size = (4 * 10 / 14), data = mean_umi, aes(x = Replicate, fill = Treatment, label = mean, y = 110000, fill = NULL), position = position_dodge(width = .8)) +
+  scale_fill_manual(values = cols_treat) +
+  theme_notebook +
+  ylab("log10 (UMI)")
+
+mean_genes <- at_stats %>%
+  group_by(Treatment, Replicate) %>%
+  summarise(mean = round(mean(nFeature_RNA)))
+
+
+plot_genes_at <- ggplot(at_stats, aes(x = Replicate, y = nFeature_RNA, fill = Treatment)) +
+  scale_y_continuous(trans = "log10") +
+  geom_violin(linewidth = 0.2, position = position_dodge(width = 0.8), width = .6) +
+  geom_boxplot(outlier.size = 0.2, linewidth = 0.1, width = .1, position = position_dodge(width = 0.8)) +
+  geom_text(size = (4 * 10 / 14), data = mean_genes, aes(x = Replicate, fill = Treatment, label = mean, y = 15000, fill = NULL), position = position_dodge(width = .8)) +
+  scale_fill_manual(values = cols_treat) +
+  theme_notebook +
+  ylab("Number of genes")
+
+
+grid.arrange(plot_umi_at, plot_genes_at, ncol = 2)
+```
+
+#### Unsupervised clustering
+
+```{r, eval=FALSE}
+merge_at_nema <- FindNeighbors(merge_at_nema, dims = 1:30, verbose = FALSE, reduction = "pca")
+merge_at_nema <- FindClusters(merge_at_nema, graph.name = "SCT_snn", 
+                              resolution = seq(0.1, 2, by = 0.1))
+```
+
+```{r}
+clustree(merge_at_nema, prefix = "SCT_snn_res.0.")
+```
+
+Above resolution 0.8 the clusters are inestable, but below 0.8 the clusters don't separate correctly the cell type assigned with the transfer label (see vascular tissues and columella). So, we have selected resolution 0.8 for further analysis.
+
+```{r, fig.height=10, fig.width=12}
+p1 <- DimPlot(merge_at_nema, group.by = "SCT_snn_res.0.7")
+p2 <- DimPlot(merge_at_nema, group.by = "SCT_snn_res.0.8")
+p3 <- DimPlot(merge_at_nema, group.by = "Cell_type")
+grid.arrange(p1, p2, p3, ncol = 2)
+```
+
+```{r, eval=FALSE}
+merge_at_nema@meta.data <- merge_at_nema@meta.data %>%
+  mutate(Cluster = paste0("At", SCT_snn_res.0.8))
+```
+
+Now we calculate the differentially expressed markers for the clusters with resolution 0.8
+
+```{r, eval=FALSE}
+Idents(merge_at_nema) <- "Cluster"
+ath_cluster_markers <- FindAllMarkers(merge_at_nema)
+```
+
+
+### Rice metrics and clustering
+
+#### Metrics
+
+```{r, fig.height=3,fig.width=12, message=FALSE,warning=FALSE}
+# Stats per replicate
+os_stats <- merge_os_nema@meta.data %>%
+  select(nCount_RNA, nFeature_RNA, Treatment, Replicate)
+
+mean_umi <- os_stats %>%
+  group_by(Treatment, Replicate) %>%
+  summarise(mean = round(mean(nCount_RNA)))
+
+plot_umi_os <- ggplot(os_stats, aes(x = Replicate, y = nCount_RNA, 
+                                    fill = Treatment)) +
+  scale_y_continuous(trans = "log10") +
+  geom_violin(linewidth = 0.2, position = position_dodge(width = 0.8, ), 
+              width = .6) +
+  geom_boxplot(outlier.size = 0.2, linewidth = 0.1, 
+               width = .1, position = position_dodge(width = 0.8)) +
+  geom_text(size = (4 * 10 / 14), 
+            data = mean_umi, aes(x = Replicate, fill = Treatment, label = mean, 
+                                 y = 110000, fill = NULL), 
+            position = position_dodge(width = .8)) +
+  scale_fill_manual(values = cols_treat) +
+  theme_notebook +
+  ylab("log10 (UMI)")
+
+
+mean_genes <- os_stats %>%
+  group_by(Treatment, Replicate) %>%
+  summarise(mean = round(mean(nFeature_RNA)))
+
+
+plot_genes_os <- ggplot(os_stats, aes(x = Replicate, y = nFeature_RNA, 
+                                      fill = Treatment)) +
+  scale_y_continuous(trans = "log10") +
+  geom_violin(linewidth = 0.2, position = position_dodge(width = 0.8), width = .6) +
+  geom_boxplot(outlier.size = 0.2, linewidth = 0.1, width = .1, 
+               position = position_dodge(width = 0.8)) +
+  geom_text(size = (4 * 10 / 14), data = mean_genes, 
+            aes(x = Replicate, fill = Treatment, label = mean, 
+                y = 15000, fill = NULL), 
+            position = position_dodge(width = .8)) +
+  scale_fill_manual(values = cols_treat) +
+  theme_notebook +
+  ylab("Number of genes")
+
+grid.arrange(plot_umi_os, plot_genes_os, ncol = 2)
+```
+
+#### Unsupervised clustering
+
+```{r, eval=FALSE}
+merge_os_nema <- FindNeighbors(merge_os_nema, dims = 1:30, verbose = FALSE,reduction="pca")
+merge_os_nema <-FindClusters(merge_os_nema, graph.name="SCT_snn",resolution=seq(0.1,2, by=0.1))
+```
+
+```{r}
+clustree(merge_os_nema,prefix = "SCT_snn_res.0.")
+```
+
+```{r, eval=FALSE}
+merge_os_nema@meta.data <- merge_os_nema@meta.data %>% 
+  mutate(Cluster=paste0("Os",SCT_snn_res.0.6))
+```
+
+Now we calculate the differentially expressed markers for the clusters with resolution 0.6
+
+```{r, eval=FALSE}
+Idents(merge_os_nema) <- "Cluster"
+osa_cluster_markers <- FindAllMarkers(merge_os_nema)
+```
+
+```{r}
+sessionInfo()
+```
+
