@@ -1,9 +1,7 @@
 ---
 title: "Metrics, metadata annotation and clustering"
 output:
-  html_notebook: 
-    theme: cosmo
-    highlight: pygments
+  output: github_document
 ---
 
 ```{r, warning=FALSE, message=FALSE}
