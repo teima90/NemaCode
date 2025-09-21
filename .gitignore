@@ -32,7 +32,7 @@ data/seurat_objects/*
 *.bak
 .cache/
 *_cache/
-*_files/
+!*_files/
 
 # Quarto/R Markdown temporary directories
 *_files/
