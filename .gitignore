@@ -1,0 +1,40 @@
+# R and RStudio
+.Rhistory
+.RData
+.Rproj.user/
+.Ruserdata
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Data (keep only tiny demo data if needed)
+data/seurat_objects/*
+
+
+# Knitted outputs
+*.html
+*.nb.html
+
+# Large objects and intermediate results
+*.rds
+*.RData
+*.rda
+*.rds.gz
+*.csv.gz
+*.tsv.gz
+
+# Logs, caches, and temporary files
+*.log
+*.out
+*.tmp
+*.swp
+*.bak
+.cache/
+*_cache/
+*_files/
+
+# Quarto/R Markdown temporary directories
+*_files/
+*_cache/
+
