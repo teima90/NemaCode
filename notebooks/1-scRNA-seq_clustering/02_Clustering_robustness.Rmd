@@ -1,0 +1,398 @@
+---
+title: "Batch effect and sample size evaluation"
+output:
+  output: github_document
+---
+
+```{r, warning=FALSE, message=FALSE}
+# Load resources. Libraries, paths, functions, themes.
+source(file.path("..", "..", "scripts", "config.R"))
+set.seed(101)
+```
+
+```{r}
+# Read merged dataset
+merge_at_nema <- readRDS(ATH_DATA_PATH)
+merge_os_nema <- readRDS(OSA_DATA_PATH)
+```
+
+# Effect in the clustering by replicate
+
+```{r}
+DimPlot(merge_at_nema, group.by = "Replicate",shuffle = TRUE)+
+  scale_color_manual(values=cols_rep)
+```
+```{r}
+DimPlot(merge_os_nema, group.by = "Replicate",shuffle = TRUE)+
+  scale_color_manual(values=cols_rep_r0)
+```
+```{r}
+ggplot(merge_at_nema@meta.data, aes(x=Cluster, fill=Replicate))+
+  geom_bar(position = "fill")+
+  scale_fill_manual(values=cols_rep)
+```
+
+
+```{r}
+ggplot(merge_os_nema@meta.data, aes(x=Cluster, fill=Replicate))+
+  geom_bar(position = "fill")+
+  scale_fill_manual(values=cols_rep_r0)
+```
+
+
+```{r}
+
+at_sc <- as.SingleCellExperiment(merge_at_nema, assay = "SCT")
+
+vars_ath <- c("Replicate","Treatment","annotation.predicted")
+scater::plotExplanatoryVariables(
+  at_sc, variables = vars_ath,exprs_values = "logcounts"
+)
+```
+
+```{r}
+
+os_sc <- as.SingleCellExperiment(merge_os_nema, assay = "SCT")
+
+vars_osa <- c("Replicate","Treatment","Cell_type")
+scater::plotExplanatoryVariables(
+  os_sc, variables = vars_osa,exprs_values = "logcounts"
+)
+```
+
+```{r}
+ath_pca_emb <- Embeddings(object = merge_at_nema[["pca"]])[, 1:2]%>% 
+  cbind(merge_at_nema@meta.data)
+ggplot(ath_pca_emb, aes(x=Replicate, y=PC_1, fill=Replicate))+
+  geom_violin(linewidth=0.05,width=.6)+
+  geom_boxplot(outlier.size=0,linewidth=0.05,width=.1,outlier.shape = NA)+
+  scale_fill_manual(values= cols_rep)+
+  facet_grid(cols=vars(Treatment))+
+  theme_notebook+
+  theme(panel.spacing = unit(0.1, "lines"),
+        strip.background = element_rect(fill = "white", color = "black"),
+        strip.text = element_text(margin = margin(2, 0, 2, 0)))+
+  ylab("Embedding values (PC 1)")
+```
+
+```{r}
+osa_pca_emb <- Embeddings(object = merge_os_nema[["pca"]])[, 1:2]%>% 
+  cbind(merge_os_nema@meta.data)
+ggplot(osa_pca_emb, aes(x=Replicate, y=PC_1, fill=Replicate))+
+  geom_violin(linewidth=0.05,width=.6)+
+  geom_boxplot(outlier.size=0,linewidth=0.05,width=.1,outlier.shape = NA)+
+  scale_fill_manual(values= cols_rep_r0)+
+  facet_grid(cols=vars(Treatment))+
+  theme_notebook+
+  theme(panel.spacing = unit(0.1, "lines"),
+        strip.background = element_rect(fill = "white", color = "black"),
+        strip.text = element_text(margin = margin(2, 0, 2, 0)))+
+  ylab("Embedding values (PC 1)")
+```
+
+```{r}
+#Perform correlation between samples
+osa_rep_agg <- AggregateExpression(
+  merge_os_nema,
+  assays = "RNA",
+  return.seurat = FALSE,
+  group.by = c("Replicate","Treatment"),
+  add.ident = NULL,
+  slot = "counts"
+)
+
+cor_matrix <- cor((osa_rep_agg[[1]]), method = "pearson")
+rownames(cor_matrix)<-c("R0_M","R1_M","R1_I","R2_M","R2_I","R3_M","R3_I")
+colnames(cor_matrix)<-c("R0_M","R1_M","R1_I","R2_M","R2_I","R3_M","R3_I")
+
+osa_corr_plot <- ggcorrplot(cor_matrix,
+           lab_col = "white",
+           type = "upper",
+           lab = T,
+           show.diag = F)+theme_notebook+ 
+  theme(axis.title=element_blank(), legend.position = "none")
+osa_corr_plot
+```
+
+```{r, fig.width=5, fig.height=3}
+# Perform correlation between samples
+ath_rep_agg <- AggregateExpression(
+  merge_at_nema,
+  assays = "RNA",
+  return.seurat = FALSE,
+  group.by = c("Replicate", "Treatment"),
+  add.ident = NULL,
+  slot = "counts"
+)
+
+cor_matrix <- cor((ath_rep_agg[[1]]), method = "pearson")
+rownames(cor_matrix) <- c("R1_M", "R1_I", "R2_M", "R2_I", "R3_M", "R3_I")
+colnames(cor_matrix) <- c("R1_M", "R1_I", "R2_M", "R2_I", "R3_M", "R3_I")
+
+ath_corr_plot <- ggcorrplot(cor_matrix,
+  lab_col = "white",
+  type = "upper",
+  lab = T,
+  show.diag = F
+) + theme_notebook + theme(axis.title = element_blank(), legend.position = "none")
+ath_corr_plot
+```
+
+# Effect in the clustering by sample size
+
+```{r, eval=FALSE}
+#Apply subsampling to Arabidopsis dataset
+variable<-"Treatment"
+clusters <- "SCT_snn_res.0.8"
+
+set.seed(100)
+at_subsampling_15 <- SubsampleSeurat(merge_at_nema,variable,clusters,nclusters = 15)
+#saveRDS(at_subsampling_15, file.path("..", "Resources","02_Subsampling","at_subsampling_15.rds"))
+
+#Apply subsampling to rice dataset
+
+variable<-"Treatment"
+clusters <- "SCT_snn_res.0.6"
+
+set.seed(100)
+os_subsampling_15 <- SubsampleSeurat(merge_os_nema,variable,clusters,nclusters = 15)
+#saveRDS(os_subsampling_15, file.path("..", "Resources","02_Subsampling","os_subsampling_15.rds"))
+
+```
+
+```{r, include=FALSE}
+at_subsampling_15<-readRDS(file.path("..","..", "data", "resources","02_Subsampling","at_subsampling_15.rds"))
+os_subsampling_15<-readRDS(file.path("..","..", "data", "resources","02_Subsampling","os_subsampling_15.rds"))
+```
+
+## Exploration of clustering after subsampling
+
+### *Arabidopsis thaliana*
+
+We have generated a list with the data of the ten repetitions of subsampling and clustering. Every repetition contains the dataset with the cells randomly selected (10K from mock and 10K from infected) and the number of the new cluster assigned (new_cluster) and the number of the original cluster in the dataset (ref_cluster).
+
+
+```{r}
+str(at_subsampling_15)
+```
+
+
+```{r}
+head(at_subsampling_15[[1]])
+```
+
+Then, we calculate for every bootstrap repetition the frequency of infected and mock cells in every of the new clusters and we rename the clusters depending on the frequency of infected cells. 
+
+```{r, message=FALSE}
+cluster_sort_frequency <- map(at_subsampling_15, ~group_by(.x,new_cluster,Treatment) %>% 
+         summarise(n = n()) %>%
+         mutate(freq = n / sum(n)) %>% 
+         ungroup() %>% 
+         arrange(Treatment,freq) %>%              
+         mutate(new_cluster = factor(new_cluster, unique(new_cluster))) %>% 
+         mutate(new_cluster_order = factor(c(0:(length(unique(new_cluster))-1),(length(unique(new_cluster))-1):0))))
+```
+
+We obtain a list were the new clusters are renamed depending the frequency of Mock and Infected frequency cells. This allow us to compare clusters within the bootstrap repetitions. 
+
+```{r}
+head(cluster_sort_frequency[[1]])
+```
+
+We calculate the mean frequency of the equivalent clusters in all the bootstraps repetitions. 
+
+```{r}
+cluster_sort_frequency_summary <- do.call(rbind,cluster_sort_frequency) %>% 
+  group_by(new_cluster_order,Treatment) %>% 
+  summarise(mean=mean(freq),
+            sem=sd(freq)) %>% 
+  filter(Treatment=="Infected")
+```
+
+```{r}
+head(cluster_sort_frequency_summary)
+```
+
+```{r}
+plot_freq <- ggplot(data=cluster_sort_frequency_summary, aes(x=new_cluster_order,y=mean,fill=Treatment)) +
+  geom_rect(xmin=0,xmax=4.5, ymin=-Inf, ymax=Inf,alpha=0.3,fill="grey90")+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values="#db0087")+
+  geom_hline(yintercept=0.5,linetype = "dashed",linewidth=0.1)+
+  ylab("Frequency")+
+  theme_paper+
+  xlab("Cluster")+
+  theme(axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())+
+  scale_y_continuous(breaks=c(0,0.5,1), limits=c(0,1))+
+  coord_flip()
+
+plot_freq
+```
+
+Now we check if the cells from the selected "nematode clusters" are assigned to the new clusters enriched in cells from Infected samples after subsampling.
+
+```{r, message=FALSE}
+old_cells_list <- lapply(1:10, function(i) {
+  new_order <- cluster_sort_frequency[[i]] %>% distinct(new_cluster,new_cluster_order)
+  
+  data_old_cells <- at_subsampling_15[[i]] %>% 
+    mutate(new_cluster = factor(new_cluster, levels(cluster_sort_frequency[[i]]$new_cluster))) %>% 
+    group_by(new_cluster,ref_cluster) %>% 
+    summarise(n=n()) %>% 
+    ungroup() %>% 
+    group_by(ref_cluster) %>% 
+    mutate(freq = n / sum(n)) %>% 
+    ungroup() %>% 
+    complete(new_cluster,ref_cluster) %>% 
+    filter(ref_cluster %in% c(8,28)) %>% 
+    left_join(new_order,by="new_cluster") %>% 
+    mutate(freq=case_when(is.na(freq) ~ 0,
+                          TRUE ~ freq)) %>% 
+    mutate(subsampling = i)
+  
+  return(data_old_cells)
+})
+
+data_density<-bind_rows(old_cells_list) %>% 
+  group_by(ref_cluster,new_cluster_order) %>% 
+  summarise(mean_freq=mean(freq))
+
+
+plot_ref_clusters <- ggplot(data=data_density, aes(x=new_cluster_order,y=mean_freq,fill=ref_cluster)) +
+  geom_rect(xmin=0,xmax=4.5, ymin=-Inf, ymax=Inf,alpha=0.3,fill="grey90")+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=cols_umap[c(9,29)])+
+  facet_grid(cols=vars(ref_cluster))+
+  ylab("Frequency")+
+  theme_strip+
+  xlab(NULL)+
+  theme(axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())+
+  scale_y_continuous(breaks=c(0,0.3,0.6), limits=c(0,0.6))+
+  coord_flip()
+
+
+
+```
+
+```{r}
+plot_at_subsampling <- plot_freq +plot_ref_clusters+plot_layout(widths = c(1,1.5))
+```
+
+```{r}
+plot_at_subsampling 
+```
+
+
+### *Oryza sativa*
+
+We repeat the same with the rice dataset
+
+```{r}
+head(os_subsampling_15[[1]])
+```
+
+Then, we calculate for every bootstrap repetition the frequency of infected and mock cells in every of the new clusters and we rename the clusters depending on the frequency of infected cells. 
+
+```{r, message=FALSE}
+cluster_sort_frequency <- map(os_subsampling_15, ~group_by(.x,new_cluster,Treatment) %>% 
+         summarise(n = n()) %>%
+         mutate(freq = n / sum(n)) %>% 
+         ungroup() %>% 
+         arrange(Treatment,freq) %>%              
+         mutate(new_cluster = factor(new_cluster, unique(new_cluster))) %>% 
+         mutate(new_cluster_order = factor(c(0:(length(unique(new_cluster))-1),(length(unique(new_cluster))-1):0))))
+```
+
+
+```{r}
+head(cluster_sort_frequency[[1]])
+```
+
+```{r}
+cluster_sort_frequency_summary <- do.call(rbind,cluster_sort_frequency) %>% 
+  group_by(new_cluster_order,Treatment) %>% 
+  summarise(mean=mean(freq),
+            sem=sd(freq)) %>% 
+  filter(Treatment=="Infected")
+```
+
+```{r}
+head(cluster_sort_frequency_summary)
+```
+
+```{r}
+plot_freq <- ggplot(data=cluster_sort_frequency_summary, aes(x=new_cluster_order,y=mean,fill=Treatment)) +
+  geom_rect(xmin=0,xmax=8.5, ymin=-Inf, ymax=Inf,alpha=0.3,fill="grey90")+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values="#db0087")+
+  geom_hline(yintercept=0.5,linetype = "dashed",linewidth=0.1)+
+  ylab("Frequency")+
+  theme_paper+
+  xlab("Cluster")+
+  theme(axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())+
+  scale_y_continuous(breaks=c(0,0.5,1), limits=c(0,1))+
+  coord_flip()
+
+plot_freq
+```
+
+
+```{r, message=FALSE}
+old_cells_list <- lapply(1:10, function(i) {
+  new_order <- cluster_sort_frequency[[i]] %>% distinct(new_cluster,new_cluster_order)
+  
+  data_old_cells <- os_subsampling_15[[i]] %>% 
+    mutate(new_cluster = factor(new_cluster, levels(cluster_sort_frequency[[i]]$new_cluster))) %>% 
+    group_by(new_cluster,ref_cluster) %>% 
+    summarise(n=n()) %>% 
+    ungroup() %>% 
+    group_by(ref_cluster) %>% 
+    mutate(freq = n / sum(n)) %>% 
+    ungroup() %>% 
+    complete(new_cluster,ref_cluster) %>% 
+    filter(ref_cluster %in% c(3,9,10,16,17)) %>% 
+    left_join(new_order,by="new_cluster") %>% 
+    mutate(freq=case_when(is.na(freq) ~ 0,
+                          TRUE ~ freq)) %>% 
+    mutate(subsampling = i)
+  
+  return(data_old_cells)
+})
+
+data_density<-bind_rows(old_cells_list) %>% 
+  group_by(ref_cluster,new_cluster_order) %>% 
+  summarise(mean_freq=mean(freq))
+
+
+plot_ref_clusters <- ggplot(data=data_density, aes(x=new_cluster_order,y=mean_freq,fill=ref_cluster)) +
+  geom_rect(xmin=0,xmax=8.5, ymin=-Inf, ymax=Inf,alpha=0.3,fill="grey90")+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=cols_umap[c(4,10,11,17,18)])+
+  facet_grid(cols=vars(ref_cluster))+
+  ylab("Frequency")+
+  theme_strip+
+  xlab(NULL)+
+  theme(axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())+
+  scale_y_continuous(breaks=c(0,0.3,0.6), limits=c(0,0.6))+
+  coord_flip()
+
+```
+
+```{r}
+plot_os_subsampling <- plot_freq +plot_ref_clusters+plot_layout(widths = c(1,1.5))
+```
+
+```{r}
+plot_os_subsampling 
+```
+
+```{r}
+sessionInfo()
+```
+

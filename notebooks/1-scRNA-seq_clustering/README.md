@@ -6,6 +6,6 @@ The notebooks contain the code to analyze the merged datasets of RKN infected an
 
 Metrics of the datasets, decision in clustering resolution and calculation of marker genes per cluster.
 
-## 02_Batch_evaluation
+## 02_Clustering_robustness
 
-Evaluation of batch effect due to biological replicates before and after batch correction.
+Evaluation of batch effects from biological replicates and cell number imbalance between mock and infected samples in clustering.

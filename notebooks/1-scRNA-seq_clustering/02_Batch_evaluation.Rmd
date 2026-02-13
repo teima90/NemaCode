@@ -1,6 +1,0 @@
----
-title: "Batch effect evaluation"
-output:
-  output: github_document
----
-

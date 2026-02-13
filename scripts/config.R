@@ -37,6 +37,9 @@ library(igraph)
 library(ggraph)
 library(purrr)
 library(ggVennDiagram)
+library(scater)
+library(harmony)
+library(lisi)
 
 ######################################################
 ############  Data directories #######################
@@ -96,8 +99,8 @@ theme_strip <- theme_bw() +
 
 #Colors paper
 cols_treat <- c("Infected"="#DE77AE","Mock"="grey90")
-cols_rep <- c("R1"=brewer.pal(4,"Blues")[2],"R2"=brewer.pal(4,"Blues")[3],"R3"=brewer.pal(4,"Blues")[4])
-cols_rep_r0 <- c("R0"=brewer.pal(4,"Blues")[1],"R1"=brewer.pal(4,"Blues")[2],"R2"=brewer.pal(4,"Blues")[3],"R3"=brewer.pal(4,"Blues")[4])
+cols_rep <- c("R1"="#F28E2B","R2" = "59A14F","R3"="#E15759")
+cols_rep_r0 <- c("R0"="#4E79A7","R1"="#F28E2B","R2" = "59A14F","R3"="#E15759")
 cols_nema_at <- c("At28"="#DFC27D","At8"="#F6E8C3","Other"="grey90")
 cols_nema_os<-c("Os17"="#C7EAE5","Os16"="#80CDC1","Os10"="#35978F","Os9"="#01665E","Os3"="#003C30","Other"="grey90")
 cols_nema_combined <- c("At28"="#DFC27D","At8"="#F6E8C3","Other"="grey90", 

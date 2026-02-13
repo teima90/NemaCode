@@ -10,6 +10,7 @@ Thumbs.db
 
 # Data (keep only tiny demo data if needed)
 data/seurat_objects/*
+data/resources/*
 
 
 # Knitted outputs
