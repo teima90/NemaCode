@@ -36,6 +36,5 @@ data/resources/*
 !*_files/
 
 # Quarto/R Markdown temporary directories
-*_files/
 *_cache/
 
