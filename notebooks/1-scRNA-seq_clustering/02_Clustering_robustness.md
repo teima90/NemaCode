@@ -20,14 +20,14 @@ DimPlot(merge_at_nema, group.by = "Replicate",shuffle = TRUE)+
   scale_color_manual(values=cols_rep)
 ```
 
-![](02_Clustering_robutness_batch_sample_size_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+![](02_Clustering_robustness_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
 
 ``` r
 DimPlot(merge_os_nema, group.by = "Replicate",shuffle = TRUE)+
   scale_color_manual(values=cols_rep_r0)
 ```
 
-![](02_Clustering_robutness_batch_sample_size_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+![](02_Clustering_robustness_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
 
 ``` r
 ggplot(merge_at_nema@meta.data, aes(x=Cluster, fill=Replicate))+
@@ -35,7 +35,7 @@ ggplot(merge_at_nema@meta.data, aes(x=Cluster, fill=Replicate))+
   scale_fill_manual(values=cols_rep)
 ```
 
-![](02_Clustering_robutness_batch_sample_size_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+![](02_Clustering_robustness_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
 ``` r
 ggplot(merge_os_nema@meta.data, aes(x=Cluster, fill=Replicate))+
@@ -43,7 +43,7 @@ ggplot(merge_os_nema@meta.data, aes(x=Cluster, fill=Replicate))+
   scale_fill_manual(values=cols_rep_r0)
 ```
 
-![](02_Clustering_robutness_batch_sample_size_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+![](02_Clustering_robustness_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
 ``` r
 at_sc <- as.SingleCellExperiment(merge_at_nema, assay = "SCT")
@@ -56,7 +56,7 @@ scater::plotExplanatoryVariables(
 
     ## Warning: Removed 57 rows containing non-finite values (`stat_density()`).
 
-![](02_Clustering_robutness_batch_sample_size_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+![](02_Clustering_robustness_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
 ``` r
 os_sc <- as.SingleCellExperiment(merge_os_nema, assay = "SCT")
@@ -67,7 +67,7 @@ scater::plotExplanatoryVariables(
 )
 ```
 
-![](02_Clustering_robutness_batch_sample_size_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+![](02_Clustering_robustness_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
 ``` r
 ath_pca_emb <- Embeddings(object = merge_at_nema[["pca"]])[, 1:2]%>% 
@@ -84,7 +84,7 @@ ggplot(ath_pca_emb, aes(x=Replicate, y=PC_1, fill=Replicate))+
   ylab("Embedding values (PC 1)")
 ```
 
-![](02_Clustering_robutness_batch_sample_size_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](02_Clustering_robustness_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 ``` r
 osa_pca_emb <- Embeddings(object = merge_os_nema[["pca"]])[, 1:2]%>% 
@@ -101,7 +101,7 @@ ggplot(osa_pca_emb, aes(x=Replicate, y=PC_1, fill=Replicate))+
   ylab("Embedding values (PC 1)")
 ```
 
-![](02_Clustering_robutness_batch_sample_size_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+![](02_Clustering_robustness_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
 ``` r
 #Perform correlation between samples
@@ -127,7 +127,7 @@ osa_corr_plot <- ggcorrplot(cor_matrix,
 osa_corr_plot
 ```
 
-![](02_Clustering_robutness_batch_sample_size_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+![](02_Clustering_robustness_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
 
 ``` r
 # Perform correlation between samples
@@ -153,7 +153,7 @@ ath_corr_plot <- ggcorrplot(cor_matrix,
 ath_corr_plot
 ```
 
-![](02_Clustering_robutness_batch_sample_size_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+![](02_Clustering_robustness_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
 
 # Effect in the clustering by sample size
 
@@ -322,7 +322,7 @@ plot_freq <- ggplot(data=cluster_sort_frequency_summary, aes(x=new_cluster_order
 plot_freq
 ```
 
-![](02_Clustering_robutness_batch_sample_size_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+![](02_Clustering_robustness_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
 
 Now we check if the cells from the selected “nematode clusters” are
 assigned to the new clusters enriched in cells from Infected samples
@@ -378,7 +378,7 @@ plot_at_subsampling <- plot_freq +plot_ref_clusters+plot_layout(widths = c(1,1.5
 plot_at_subsampling 
 ```
 
-![](02_Clustering_robutness_batch_sample_size_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
+![](02_Clustering_robustness_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
 
 ### *Oryza sativa*
 
@@ -467,7 +467,7 @@ plot_freq <- ggplot(data=cluster_sort_frequency_summary, aes(x=new_cluster_order
 plot_freq
 ```
 
-![](02_Clustering_robutness_batch_sample_size_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
+![](02_Clustering_robustness_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
 
 ``` r
 old_cells_list <- lapply(1:10, function(i) {
@@ -519,7 +519,7 @@ plot_os_subsampling <- plot_freq +plot_ref_clusters+plot_layout(widths = c(1,1.5
 plot_os_subsampling 
 ```
 
-![](02_Clustering_robutness_batch_sample_size_files/figure-gfm/unnamed-chunk-33-1.png)<!-- -->
+![](02_Clustering_robustness_files/figure-gfm/unnamed-chunk-33-1.png)<!-- -->
 
 ``` r
 sessionInfo()
