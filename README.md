@@ -30,6 +30,10 @@ NemaCode/
 
 - **notebooks/**  
   R Markdown notebook with figures inline.
+  
+  `.Rmd` files contain the source code.
+  
+  `.md` files are the rendered versions for easier viewing on GitHub.
 
 - **sessioninfo/**  
   Contains a global `session_info.txt` and each notebook ends with  
