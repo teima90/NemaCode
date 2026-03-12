@@ -1,0 +1,21 @@
+Gene	Cell_type
+Os04g0684300	Endodermis
+Os10g0155100	Endodermis
+Os04g0554500	Cortex
+Os03g0135700	Cortex
+Os07g0634400	Pericycle
+Os01g0971400	Xylem
+Os07g0638500	Xylem
+Os06g0614000	Phloem
+Os01g0158400	Phloem
+Os10g0454200	Epidermis
+Os03g0155500	Epidermis
+Os01g0248900	Atrichoblast
+Os10g0578200	Trichoblast
+Os05g0438700	Dividing cells
+Os06g0160001	Dividing cells
+Os08g0512600	Dividing cells
+Os12g0569200	Vascular initials
+Os08g0115800	Sclerenchyma
+Os06g0681600	Exodermis
+Os11g0539200	Exo_Scl

@@ -1,0 +1,274 @@
+---
+title: "Cell type annotation of rice dataset"
+output:
+  output: github_document
+---
+
+```{r, warning=FALSE, message=FALSE}
+# Load resources. Libraries, paths, functions, themes.
+source(file.path("..", "..", "scripts", "config.R"))
+```
+
+```{r}
+#Read merged dataset
+merge_os_mock <- readRDS(OSA_DATA_PATH_MOCK)
+merge_os_nema <- readRDS(OSA_DATA_PATH)
+```
+
+## Annotating rice mock dataset by cell type
+
+We use first the mock samples from three biological replicates (R1, R2, R3) to manually annotate the clusters based on the expression of experimentally validated by RNA *in situ* hybridization cell type specific markers in rice. 
+
+
+```{r}
+DimPlot(merge_os_mock, group.by = "orig.ident")
+```
+First we perform an unsupervised clustering to select the best resolution to annotate the cell types.
+
+```{r, message=FALSE}
+merge_os_mock <- FindNeighbors(merge_os_mock, dims = 1:30, 
+                               verbose = FALSE,reduction="pca")
+merge_os_mock <- FindClusters(merge_os_mock, graph.name="SCT_snn",
+                              resolution=seq(0.1,1.5,0.1))
+```
+
+```{r}
+DimPlot(merge_os_mock, group.by = "SCT_snn_res.1.2", label = TRUE)
+
+```
+
+```{r}
+#Dotplot with markers
+
+#Load file with known validated markers
+markers <- read.table(file.path("..","..","data","resources","04_Cell_type_rice",
+                                "validated_markers.txt"),header=TRUE, sep="\t")
+markers_vector <- c(markers$Gene)
+markers_name <- c(markers$Cell_type)
+
+markers_seurat <- setNames(markers_vector, markers_name)
+
+p <-DotPlot(object = merge_os_mock, features = markers_seurat,
+            group.by = "SCT_snn_res.1.2")
+
+#Sort levels of cell types
+
+markers_dotplot<-p$data %>% 
+  mutate(feature.groups = factor(feature.groups,levels = c("Vascular initials",
+                                                           "Dividing cells", 
+                                                           "Sclerenchyma",
+                                                           "Exodermis",
+                                                           "Exo_Scl",
+                                                           "Epidermis",
+                                                           "Atrichoblast",
+                                                           "Trichoblast",
+                                                           "Cortex",                                                       
+                                                           "Phloem",
+                                                           "Endodermis",
+                                                           "Pericycle",
+                                                           "Xylem"))) %>% 
+  arrange(factor(feature.groups, levels = c("Vascular initials",
+                                            "Dividing cells", 
+                                            "Sclerenchyma",
+                                            "Exodermis",
+                                            "Exo_Scl",
+                                            "Epidermis",
+                                            "Atrichoblast",
+                                            "Trichoblast",
+                                            "Cortex",                                                       
+                                            "Phloem",
+                                            "Endodermis",
+                                            "Pericycle",
+                                            "Xylem"))) %>% 
+  group_by(feature.groups) %>% 
+  arrange(desc(avg.exp.scaled),group_by=TRUE)
+
+#Sort clusters by avg expression data inthe dotplot (manual solution)
+markers_dotplot <- markers_dotplot %>% 
+  mutate(id=factor(id, levels = rev(c(14,20,8,12,15,25,4,6,18,21,1,9,2,19,13,
+                                      24,5,11,16,10,7,0,22,17,3,23))))
+
+
+dotplot_os_mock <- ggplot(data        = markers_dotplot,
+       aes(y       = id,
+           x       = features.plot,
+           col     = avg.exp.scaled)) +
+  geom_point(aes(size     = pct.exp))+
+  scale_size_area(max_size = 2)+
+  scale_colour_gradientn(colours=c("black", "magenta"))+
+  facet_grid(
+    cols = vars(feature.groups), drop = TRUE,scales = "free")+
+  theme_minimal()+ theme(legend.position = "none",
+                         text = element_text(size=10,family="sans"),
+                         axis.text=element_text(size=10, family="sans"),
+                         axis.title = element_blank(),
+                         axis.text.x=element_text(angle=90),
+                         element_line(linewidth = 0.1),
+                         strip.text.x = 
+                           element_text( margin = margin( b = 1, t = 6),size=10),
+                         panel.border = 
+                           element_rect(colour = "black", fill=NA, 
+                                        linewidth = 0.1),
+                         strip.background = 
+                           element_rect(colour = "black", linewidth = 0.1),
+                         panel.spacing = unit(0.01, "lines"))
+
+```
+
+```{r, fig.width= 10}
+dotplot_os_mock
+```
+
+Now, we are going to visualize the expression of the markers validated in this paper by RNA ISH or FISH
+
+```{r}
+#FeaturePlot validated markers x6
+plot_Os12g0569200<- FeaturePlot(merge_os_mock, features = "Os12g0569200",
+                                pt.size = 0.05,order = TRUE)+
+  scale_colour_gradientn(colours=c("black", "magenta"))+theme_void()+
+  theme(legend.position="none")#+ggtitle(NULL)
+plot_Os05g0438700<- FeaturePlot(merge_os_mock, features = "Os05g0438700",
+                                pt.size = 0.05,order = TRUE)+
+  scale_colour_gradientn(colours=c("black", "magenta"))+theme_void()+
+  theme(legend.position="none")#+ggtitle(NULL)
+plot_Os10g0454200<- FeaturePlot(merge_os_mock, features = "Os10g0454200",
+                                pt.size = 0.05,order = TRUE)+
+  scale_colour_gradientn(colours=c("black", "magenta"))+theme_void()+
+  theme(legend.position="none")##+ggtitle(NULL)
+
+plot_Os08g0115800<- FeaturePlot(merge_os_mock, features = "Os08g0115800",
+                                pt.size = 0.05,order = TRUE)+
+  scale_colour_gradientn(colours=c("black", "magenta"))+theme_void()+
+  theme(legend.position="none")#+ggtitle(NULL)
+plot_Os06g0681600<- FeaturePlot(merge_os_mock, features = "Os06g0681600",
+                                pt.size = 0.05,order = TRUE)+
+  scale_colour_gradientn(colours=c("black", "magenta"))+theme_void()+
+  theme(legend.position="none")#+ggtitle(NULL)
+plot_Os11g0539200<- FeaturePlot(merge_os_mock, features = "Os11g0539200",
+                                pt.size = 0.05,order = TRUE)+
+  scale_colour_gradientn(colours=c("black", "magenta"))+theme_void()+
+  theme(legend.position="none")#+ggtitle(NULL)
+
+
+```
+
+```{r}
+grid.arrange(plot_Os05g0438700, plot_Os06g0681600, plot_Os08g0115800,
+             plot_Os10g0454200, plot_Os11g0539200, plot_Os12g0569200, 
+             ncol=3)
+```
+
+With this information we are going to annotate the clusters manually.
+
+```{r}
+Idents(merge_os_mock) <- "SCT_snn_res.1.2"
+  
+merge_os_mock<-RenameIdents(merge_os_mock,
+                            "0"="Cortex",
+                        "1"= "Epidermis",
+                        "2"="Epidermis",
+                        "3"="Pericycle",
+                        "4"="Sclerenchyma",
+                        "5"="Trichoblast",
+                        "6"="Sclerenchyma",
+                        "7"="Cortex",
+                        "8"="Dividing",
+                        "9"="Epidermis",
+                        "10"="Cortex",
+                        "11"="Trichoblast",
+                        "12"="Sclerenchyma",
+                        "13"="Atrichoblast",
+                        "14"="VascInitials",
+                        "15"="Exodermis",
+                        "16"="Trichoblast",
+                        "17"="Endodermis",
+                      "18" = "Exodermis",
+                      "19" = "Epidermis",
+                      "20" = "Dividing",
+                      "21" = "Epidermis",
+                      "22" = "Phloem",
+                      "23" = "Xylem",
+                      "24" = "Atrichoblast",
+                      "25" = "Exodermis")
+merge_os_mock <-
+  AddMetaData(merge_os_mock,Idents(merge_os_mock),col.name = "Cell_type")
+```
+
+Based on the RNA ISH of Os10g0454200 that it is expressed in the young epidermis and the root cap, we suspect that a subcluster of the cluster 20 could correspond to the root cap. We increase the resolution to be able to annotate this subcluster. 
+
+```{r}
+Idents(merge_os_mock)<-"SCT_snn_res.1.2"
+merge_os_mock <- FindSubCluster(merge_os_mock, cluster=20, resolution=0.2, graph.name = "SCT_snn")
+```
+
+```{r}
+DimPlot(merge_os_mock, group.by = "sub.cluster", label = TRUE)
+```
+We rename the cluster 20_1 as root cap (RC)
+
+```{r}
+merge_os_mock@meta.data<- merge_os_mock@meta.data %>% 
+  mutate(Cell_type = case_when(sub.cluster == "20_1" ~ "RC",
+                               TRUE ~ Cell_type))
+Idents(merge_os_mock)<- "Cell_type"
+```
+
+```{r}
+DimPlot(merge_os_mock, group.by = "Cell_type")
+```
+
+```{r}
+#Save object annotated
+#saveRDS(merge_os_mock,OSA_DATA_PATH_MOCK)
+```
+
+## Transferring cell type annotation to the complete dataset
+
+```{r, eval=FALSE}
+Idents(merge_os_mock) <- "Cell_type"
+
+os_anchors <- FindTransferAnchors(reference=merge_os_mock, query=merge_os_nema, dims=1:30, reference.reduction = "pca")
+new_labels <- TransferData(anchorset = os_anchors, refdata = Idents(merge_os_mock),
+                           dims = 1:30)
+```
+
+
+```{r, include=FALSE}
+new_labels <- readRDS(file.path("..","..", "data","resources",
+                      "04_Cell_type_rice", 
+                      "annotation.prediction.rds"))
+```
+
+
+```{r}
+merge_os_nema <- AddMetaData(object =merge_os_nema, 
+                             metadata = new_labels$predicted.id,
+                             col.name = "predicted.id")#Add predicted id
+merge_os_nema <- AddMetaData(object =merge_os_nema, 
+                             metadata = new_labels$prediction.score.max,
+                             col.name = "prediction.score.max")#Add score prediction
+```
+
+```{r}
+DimPlot(merge_os_nema, group.by = "predicted.id")
+```
+
+
+```{r}
+#We are going to annotate dividing and VascInit as Initials
+merge_os_nema@meta.data <- merge_os_nema@meta.data %>% 
+  mutate(Cell_type= case_when(predicted.id %in% c("VascInitials","Dividing") ~ "Initials", 
+                            TRUE ~ predicted.id)) %>% 
+  mutate(Cell_type = fct_relevel(Cell_type, c("RC","Initials","Epidermis","Atrichoblast",
+                                          "Trichoblast", "Exodermis", "Sclerenchyma","Cortex",
+                                          "Endodermis","Pericycle", "Phloem", "Xylem")))
+```
+
+```{r}
+DimPlot(merge_os_nema, group.by = "Cell_type")
+```
+
+```{r}
+sessionInfo()
+```
+
