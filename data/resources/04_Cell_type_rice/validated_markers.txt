@@ -4,6 +4,8 @@ Os10g0155100	Endodermis
 Os04g0554500	Cortex
 Os03g0135700	Cortex
 Os07g0634400	Pericycle
+Os03g0130300	Pericycle
+Os05g0597100	Pericycle_Endodermis
 Os01g0971400	Xylem
 Os07g0638500	Xylem
 Os06g0614000	Phloem

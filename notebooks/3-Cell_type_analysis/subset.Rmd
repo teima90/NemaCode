@@ -1,0 +1,86 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r, warning=FALSE, message=FALSE}
+# Load resources. Libraries, paths, functions, themes.
+source(file.path("..", "..", "scripts", "config.R"))
+set.seed(101)
+```
+
+#Subset relevant tissues for trajectory analysis
+
+```{r}
+# Read merged dataset
+merge_os_nema <- readRDS(OSA_DATA_PATH)
+```
+
+```{r}
+merge_os_nema@meta.data <- merge_os_nema@meta.data %>%  
+  mutate(cells_to_keep = case_when(SCT_snn_res.0.6 %in% 
+                                     c("3","9","10","16","17") ~ "Yes",
+                                   TRUE ~ "No")) %>% 
+  mutate(cells_to_keep= case_when(Cell_type %in% c("Pericycle",
+                                                   "Cortex", "Endodermis") ~ "Yes",
+         TRUE ~ cells_to_keep)) %>% 
+  mutate(cells_to_keep = case_when(SCT_snn_res.0.6 %in% 
+                                     c("11","12") ~ "No",
+                                   TRUE ~ cells_to_keep)) %>% 
+  mutate(cells_to_keep = case_when(Treatment == "Mock" ~ "No",
+                                   TRUE ~ cells_to_keep)) 
+inner_tissue <- subset(merge_os_nema, subset= cells_to_keep == "Yes")
+```
+
+```{r}
+expa7_expression = GetAssayData(object = inner_tissue, 
+assay = "SCT", slot = "data")["Os03g0822000",]
+```
+
+```{r}
+pos_ids = names(which(expa7_expression>1))
+neg_ids = names(which(expa7_expression==0))
+
+pos_cells = subset(inner_tissue,cells=pos_ids)
+```
+
+```{r}
+DefaultAssay(pos_cells) <- "RNA"
+```
+
+```{r}
+subset_expa <- SCTransform(pos_cells)
+```
+```{r}
+subset_expa <- RunPCA(subset_expa)
+```
+
+```{r}
+subset_expa <- RunUMAP(subset_expa, dims=1:40)
+```
+
+```{r}
+subset_expa <- FindNeighbors(subset_expa, dims = 1:40)
+subset_expa <- FindClusters(subset_expa, resolution = 0.5)
+```
+
+```{r}
+DimPlot(subset_expa)
+```
+
+
+```{r}
+#To reduce memory needed, you can remove the parts of the seurat object that are not needed. In this case I remove everything but the SCT-assay and the UMAP and PCA.
+dietsobj<-DietSeurat(subset_expa,assays = "SCT",dimreducs = c("pca","umap"))
+dietsobj
+#With these commands you generate a SingleCellExperiment-object from the reduced Seurat object, and then rename the reductions so they can be recognized more easily by slingshot
+sce<-as.SingleCellExperiment(subset_expa, assay = "SCT")
+reducedDimNames(sce)<-c("PCA","UMAP")
+```
+
+```{r}
+sce.start1 <- slingshot(sce, clusterLabels = "seurat_clusters", reducedDim = "UMAP", start.clus="5")
+plot(reducedDims(sce.start1)$UMAP, col = sce.start1$seurat_clusters, pch = 16, asp = 1)
+plot(SlingshotDataSet(sce.start1), add=T, type = "curves", lwd = 2, col = 'black')
+```
+

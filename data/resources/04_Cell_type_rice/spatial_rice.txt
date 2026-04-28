@@ -1,0 +1,59 @@
+Cell_type	Gene
+Epidermis	Os03g0314500
+Atrichoblast	Os01g0704100
+Atrichoblast	Os01g0868600
+Atrichoblast	Os01g0248900
+Atrichoblast	Os03g0195800
+Trichoblast	Os12g0149300
+Trichoblast	Os05g0463000
+Trichoblast	Os10g0122600
+Trichoblast	Os04g0535600
+Trichoblast	Os06g0695700
+Trichoblast	Os01g0126100
+Trichoblast	Os01g0216400
+Trichoblast	Os03g0134800
+Trichoblast	Os03g0306100
+Trichoblast	Os10g0578200
+Trichoblast	Os06g0184000
+Exodermis	Os03g0570800
+Exodermis	Os04g0452700
+Exodermis	Os03g0115700
+Exodermis	Os06g0283100
+Sclerenchyma	Os08g0115800
+Sclerenchyma	Os05g0543600
+Sclerenchyma	Os08g0151300
+Cortex	Os03g0135700
+Cortex	Os06g0503100
+Cortex	Os05g0398800
+Cortex	Os01g0296700
+Cortex	Os04g0554500
+Cortex	Os04g0585100
+Endodermis	Os01g0263000
+Endodermis	Os03g0297900
+Endodermis	Os03g0364400
+Endodermis	Os10g0155100
+Endodermis	Os01g0899700
+Vascular tissue	Os02g0809800
+Vascular tissue	Os01g0296200
+Vascular tissue	Os01g0803300
+Vascular tissue	Os02g0768300
+Vascular tissue	Os07g0634400
+Phloem	Os08g0138600
+Phloem	Os06g0664800
+Phloem	Os04g0490900
+Phloem	Os01g0723100
+Xylem	Os01g0896200
+Xylem	Os01g0672100
+Xylem	Os09g0422500
+Xylem	Os10g0467800
+Xylem	Os01g0750300
+Metaxylem	Os01g0971400
+Metaxylem	Os07g063850
+Early Metaxylem	Os08g0489300
+Root Cap	Os03g0291500
+Root Cap junction	Os03g0247200
+Meristem	Os01g0273100
+Meristem	Os02g0805200
+Meristem	Os03g0729500
+Meristem	Os04g0496300
+Meristem	Os05g0520300

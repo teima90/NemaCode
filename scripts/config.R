@@ -40,6 +40,8 @@ library(ggVennDiagram)
 library(scater)
 library(harmony)
 library(lisi)
+library(slingshot)
+library(SingleCellExperiment)
 
 ######################################################
 ############  Data directories #######################

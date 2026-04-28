@@ -1,0 +1,423 @@
+---
+title: "Integration of Arabidopsis and rice using one to one ortholog genes in Seurat"
+output:
+  output: github_document
+---
+
+```{r, warning=FALSE, message=FALSE}
+# Load resources. Libraries, paths, functions, themes.
+source(file.path("..", "..", "scripts", "config.R"))
+set.seed(101)
+```
+
+```{r}
+# Read merged dataset
+merge_at_nema <- readRDS(ATH_DATA_PATH)
+merge_os_nema <- readRDS(OSA_DATA_PATH)
+```
+
+## Subsetting datasets with one to one ortholog genes
+
+```{r}
+one_to_one <- read.table(file.path("..", "..", "data","orthology_files", "one2one.tsv"), header = TRUE)
+head(one_to_one)
+```
+
+```{r}
+# Add as metadata the name of the cells in case it changes
+merge_at_nema@meta.data <- merge_at_nema@meta.data %>%
+  mutate(
+    cell_name = rownames(merge_at_nema@meta.data),
+    specie = "Arabidopsis thaliana"
+  )
+merge_os_nema@meta.data <- merge_os_nema@meta.data %>%
+  mutate(
+    cell_name = rownames(merge_os_nema@meta.data),
+    specie = "Oryza sativa"
+  )
+```
+
+```{r}
+#### Preparing rice dataset
+
+# Keep only RNA assay and delete metadata
+DefaultAssay(merge_os_nema) <- "RNA"
+rice_rna <- DietSeurat(merge_os_nema, assays = "RNA")
+rice_rna@meta.data <- rice_rna@meta.data %>%
+  select(-contains("SCT"))
+
+# Filter genes that are one to one ortholog
+genes_to_keep <- which(rownames(rice_rna@assays$RNA@counts) %in% one_to_one$osa_gene)
+subset.rice <- rice_rna@assays$RNA@counts[genes_to_keep, ]
+
+
+# Change row names to arabidopsis
+names_to_ara <- data.frame(osa_gene = rownames(subset.rice)) %>%
+  left_join(one_to_one)
+rownames(subset.rice) <- names_to_ara$ath_gene
+
+# Create new seurat object and add metadata
+rice_subset <- CreateSeuratObject(subset.rice, orig.ident = "Oryza_sativa")
+rice_subset@meta.data <- rice_rna@meta.data
+
+# Checking clustering with only one to one genes
+rice_subset <- SCTransform(rice_subset)
+rice_subset <- RunPCA(rice_subset)
+rice_subset <- RunUMAP(rice_subset, dims = 1:30)
+```
+
+```{r, fig.width=10, fig.height=5}
+p1 <- DimPlot(merge_os_nema, group.by = "Cell_type", label = TRUE) +
+  theme_notebook +
+  scale_colour_tableau(palette = "Tableau 20") + theme(legend.position = "none") +
+  ggtitle("UMAP with 29950 genes")
+p2 <- DimPlot(rice_subset, group.by = "Cell_type", label = TRUE) +
+  theme_notebook +
+  scale_colour_tableau(palette = "Tableau 20") +
+  ggtitle("UMAP with 7375 genes") + theme(legend.position = "none")
+
+grid.arrange(p1, p2, ncol = 2)
+```
+
+```{r, fig.width=10, fig.height=5}
+p1 <- DimPlot(merge_os_nema, group.by = "Cluster", label = TRUE) +
+  theme_notebook + theme(legend.position = "none") +
+  ggtitle("UMAP with 29950 genes")
+p2 <- DimPlot(rice_subset, group.by = "Cluster", label = TRUE) +
+  theme_notebook +
+  ggtitle("UMAP with 7375 genes") + theme(legend.position = "none")
+
+grid.arrange(p1, p2, ncol = 2)
+```
+
+
+Repeat the procedure with arabiodpsis dataset
+
+```{r}
+#### Preparing arabidopsis dataset
+# Keep only RNA assay and delete metadata
+DefaultAssay(merge_at_nema) <- "RNA"
+ara_rna <- DietSeurat(merge_at_nema, assays = "RNA")
+ara_rna@meta.data <- ara_rna@meta.data %>%
+  select(-contains("SCT"))
+
+# Filter genes that are one to one ortholog
+
+# filter genes
+genes_to_keep <- which(rownames(ara_rna@assays$RNA@counts) %in% one_to_one$ath_gene)
+subset.ara <- ara_rna@assays$RNA@counts[genes_to_keep, ]
+
+# Create new seurat object and add metadata
+ara_subset <- CreateSeuratObject(subset.ara, orig.ident = "Arabidopsis_thaliana")
+ara_subset@meta.data <- ara_rna@meta.data
+
+# Checking clustering with only 5000 genes
+ara_subset <- SCTransform(ara_subset)
+ara_subset <- RunPCA(ara_subset)
+ara_subset <- RunUMAP(ara_subset, dims = 1:30)
+
+# N genes all dataset
+dim(merge_at_nema@assays$SCT@counts)
+# N genes subset dataset
+dim(ara_subset@assays$SCT@counts)
+```
+
+```{r, fig.height=5, fig.width=10}
+# Check structure data after subsetting
+p1 <- DimPlot(merge_at_nema, group.by = "Cell_type", label = TRUE) +
+  theme_notebook +
+  scale_colour_tableau(palette = "Tableau 20") + theme(legend.position = "none") +
+  ggtitle("UMAP with 23652 genes")
+p2 <- DimPlot(ara_subset, group.by = "Cell_type", label = TRUE) +
+  theme_notebook +
+  scale_colour_tableau(palette = "Tableau 20") +
+  ggtitle("UMAP with 7295 genes") + theme(legend.position = "none")
+
+grid.arrange(p1, p2, ncol = 2)
+```
+
+```{r, fig.height=5, fig.width=10}
+# Check structure data after subsetting
+p1 <- DimPlot(merge_at_nema, group.by = "Cluster", label = TRUE) +
+  theme_notebook + theme(legend.position = "none") +
+  ggtitle("UMAP with 23652 genes")
+p2 <- DimPlot(ara_subset, group.by = "Cluster", label = TRUE) +
+  theme_notebook +
+  ggtitle("UMAP with 7295 genes") + theme(legend.position = "none")
+
+grid.arrange(p1, p2, ncol = 2)
+```
+
+```{r, eval= FALSE}
+# Code for running the integration, as some problems running in the notebook,
+# it was run in another session and the object was saved for further analysis
+
+seur_list<-list(rice_subset,ara_subset)
+
+features <- SelectIntegrationFeatures(object.list = seur_list,
+                                      nfeatures = 3000)
+seur_list <- PrepSCTIntegration(object.list = seur_list,
+                                anchor.features = features)
+
+
+specie.anchors <- FindIntegrationAnchors(object.list = seur_list,
+                                         normalization.method = "SCT",
+                                         anchor.features = features)
+specie.combined.sct <- IntegrateData(anchorset = specie.anchors,
+                                     normalization.method = "SCT")
+saveRDS(specie.combined.sct, SPECIE_DATA_PATH)
+```
+
+```{r, include=FALSE, eval=TRUE}
+specie.combined.sct <- readRDS(SPECIE_DATA_PATH)
+```
+
+```{r}
+#Run clustering in the integrated dataset
+specie.combined.sct <- RunPCA(specie.combined.sct, verbose = FALSE)
+specie.combined.sct <- RunUMAP(specie.combined.sct, reduction = "pca", dims = 1:40)
+```
+
+```{r}
+specie.combined.sct <- FindNeighbors(specie.combined.sct,dims = 1:40, verbose = FALSE,reduction="pca")
+specie.combined.sct <-FindClusters(specie.combined.sct,resolution=seq(0.2,1,0.1))
+```
+
+```{r}
+clustree(specie.combined.sct, prefix = "integrated_snn_res.")
+```
+
+
+```{r}
+specie.combined.sct@meta.data<- specie.combined.sct@meta.data %>% 
+  mutate(Cluster_int = paste0("Int",integrated_snn_res.0.4))
+Clusters <- mixedsort(as.character(unique(specie.combined.sct@meta.data$Cluster_int)))#relevel clusters by name
+specie.combined.sct@meta.data<- specie.combined.sct@meta.data %>% 
+   mutate(Cluster_int= fct_relevel(Cluster_int, Clusters))
+umap_species <- Embeddings(object = specie.combined.sct[["umap"]])[, 1:2]
+umap_species <-umap_species %>% cbind(specie.combined.sct@meta.data)
+label.df <- data.frame(Cluster_int=levels(umap_species$Cluster_int),label=paste0(levels(umap_species$Cluster_int)))
+label.df_2 <- umap_species %>% 
+  group_by(Cluster_int) %>% 
+  summarize(UMAP_1 = mean(UMAP_1), UMAP_2 = median(UMAP_2)) %>% 
+  left_join(label.df)
+
+
+species_umap_plot <-ggplot(umap_species,aes(x=UMAP_1,y=UMAP_2,color=Cluster_int))+geom_point(size=1,
+                                                                                       shape=18,stroke=0)+
+  geom_label(size=(10*5/14),data=label.df_2,aes(x=UMAP_1,y=UMAP_2,label=Cluster_int),color="black",label.padding = unit(0.05, "lines"),label.r = unit(0.05, "lines"),label.size = 0.1)+
+  scale_color_manual(values=cols_umap)+theme_bw()+theme_void()+theme(legend.position = "none")
+```
+
+```{r}
+species_umap_plot 
+```
+
+```{r}
+species_nema_plot<-ggplot()+
+  geom_point(data=umap_species[umap_species$Nema_cluster == "Other",],aes(x=UMAP_1,y=UMAP_2),
+             size=0.3,shape=18,stroke=0,color="grey80")+
+  geom_point(data=umap_species[umap_species$Nema_cluster != "Other",],
+             aes(x=UMAP_1,y=UMAP_2,color=Nema_cluster),
+             size=0.3,shape=18,stroke=0)+
+  scale_color_manual(values=cols_nema_combined)+theme_bw()+theme_void()+theme(legend.position = "none")
+```
+
+```{r}
+species_nema_plot
+```
+
+```{r}
+species_cluster <- ggplot(data=umap_species, aes(x=Cluster_int, fill=factor(specie))) +
+  geom_bar(position="fill")+
+  scale_fill_manual(values=cols_specie)+
+  theme_classic()+
+  geom_hline(yintercept=0.53,linetype = "dashed",linewidth=0.1)+
+  ylab("Frequency")+
+  #theme_paper+
+  theme_notebook+
+  xlab("Cluster")+
+  coord_flip()
+```
+
+```{r}
+species_cluster
+```
+
+```{r}
+#Stats of cluster frequency
+
+treatment_nema <- specie.combined.sct@meta.data%>% 
+  select(Cell_type,Treatment,Cluster_int)
+
+
+test <- chisq.test(table(treatment_nema$Cluster_int,treatment_nema$Treatment))
+df<-table(treatment_nema$Cluster_int,treatment_nema$Treatment)
+df1 <- cbind(df, t(apply(df, 1, function(x) {
+  ch <- chisq.test(x,p = c(0.716,0.284))
+  c(unname(ch$statistic), ch$p.value,ch$expected)})))
+colnames(df1) <- c("Mock_obs","Inf_obs",'xsquared', 'pvalue',"Mock_exp", "Inf_exp")
+df1<-df1 %>% as.data.frame() %>% mutate(freq=(Inf_obs/Mock_obs),
+                                        freq_fold=(Inf_obs/Mock_obs)/0.284) %>% 
+  arrange((freq_fold))
+df1
+```
+
+```{r}
+umap_species<- umap_species %>% 
+  mutate(Treatment = fct_relevel(Treatment,c("Mock","Infected"))) %>% 
+  mutate(Cluster_int=fct_relevel(Cluster_int, rownames(df1)))
+species_cluster_treat <- ggplot(data=umap_species, aes(x=Cluster_int, fill=factor(Treatment))) +
+  geom_bar(position="fill")+
+  scale_fill_manual(values=cols_treat)+
+  theme_classic()+
+  geom_hline(yintercept=0.46,linetype = "dashed",linewidth=0.1)+
+  ylab("Frequency")+
+  theme_paper+
+  xlab("Cluster")+
+  coord_flip()
+#ggsave(species_cluster_treat,file=file.path("Figures_paper","07_Species_integration","species_cluster_treat.pdf"), width=3.2, height=5.7, units="cm", dpi=1000)
+```
+
+```{r}
+species_cluster_treat
+```
+
+```{r}
+cells_sankey <- specie.combined.sct@meta.data %>% 
+  filter(!Nema_cluster == "Other" | Cluster_int %in% c("Int6","Int7"))
+cells_sankey <- cells_sankey %>% 
+  mutate(Original_cluster =  case_when((Nema_cluster == "Other" & specie == "Arabidopsis thaliana") ~ "ath_Other",
+                                       (Nema_cluster == "Other" & specie == "Oryza sativa") ~ "osa_Other",
+                                       TRUE ~ Nema_cluster),
+         Integrated_cluster = case_when(!Cluster_int %in% c("Int6","Int7") ~ "Other",
+                                        TRUE ~ Cluster_int)) %>% 
+  select(Original_cluster,Integrated_cluster)
+#paper
+cells_sankey_plot <- cells_sankey %>% 
+  make_long(Original_cluster,Integrated_cluster)
+
+cells_sankey_plot$node <- factor(cells_sankey_plot$node,levels = c("osa_Other","Os3","Os9","Os10","Os16","Os17",
+                                                                   "At8","At28","ath_Other","Int7","Int6","Other"))
+cells_sankey_plot$next_node <- factor(cells_sankey_plot$next_node,levels = c("osa_Other","Os3","Os9","Os10","Os16","Os17",
+                                                                   "At8","At28","ath_Other","Int7","Int6","Other"))
+
+
+
+sankey <- ggplot(cells_sankey_plot, aes(x = x, 
+                                        next_x = next_x, 
+                                        node = node, 
+                                        next_node = next_node,
+                                        fill = factor(node),
+                                        label=node)) +
+  geom_sankey() +
+  geom_sankey(flow.alpha = 0.5, node.color = 1) +
+  geom_sankey_text(size = (5*5/14), color = "black", hjust = 0, position = position_nudge(x = 0.08))+
+  scale_fill_manual(values=cols_sankey) +
+  theme_void()+
+  theme(legend.position = "none")
+
+```
+
+
+```{r}
+sankey
+```
+
+```{r}
+#Plots of percentage cells per cluster
+cells_stats <- cells_sankey %>% 
+  filter(!Original_cluster %in% c("ath_Other","osa_Other")) %>% 
+  mutate(Original_cluster = factor(Original_cluster, levels = c("At28","At8","Os17","Os16","Os10","Os9","Os3"))) %>% 
+  mutate(Integrated_cluster = factor(Integrated_cluster, levels = c("Int7","Int6","Other")))
+cells_summarize <- cells_stats %>% 
+  count(Original_cluster,Integrated_cluster) %>% 
+  group_by(Original_cluster) %>% 
+  mutate(pct = n / sum(n)) 
+
+cells_stats_plots<-ggplot(cells_summarize, aes(x =Integrated_cluster, y = pct, fill = Integrated_cluster)) +
+  geom_col(position = "dodge",width = 0.5) +
+  facet_grid(Original_cluster ~ .,switch = "y" ) +
+  geom_text(aes(label = paste0(round(pct*100,digits = 0),"%"),
+                y= pct+0.05),size=(4*5/14))+
+  scale_fill_manual(values = cols_sankey)+
+  #theme_strip+
+  theme_notebook+
+  theme(axis.title.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text=element_blank(),
+        panel.border = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        panel.spacing = unit(0.1, "lines"),
+        strip.text.y = element_text(margin = margin(2,0.02,2,0.02, "cm")))+
+  coord_flip()
+```
+
+```{r}
+cells_stats_plots
+```
+
+```{r}
+data_clusters <- specie.combined.sct@meta.data
+
+tab <- with(data_clusters, table(Cluster_int, Cluster))
+
+freq_orig <- prop.table(tab, margin = 2)*100
+
+
+
+# Define the palette length
+paletteLength <- 50
+
+# Create the color palette using RdBu from RColorBrewer
+myColor <- (colorRampPalette(brewer.pal(11, "PuOr")[6:11]))(paletteLength)
+
+# Create the breaks, ensuring the colors are centered around 0
+myBreaks <- c(seq(-max(freq_orig), 0, length.out=ceiling(paletteLength/2) + 1), 
+              seq(max(freq_orig)/paletteLength, max(freq_orig), length.out=floor(paletteLength/2)))
+ann_column = data.frame(Cluster= unique(data_clusters$Cluster))
+rownames(ann_column)<-unique(data_clusters$Cluster)
+ann_column <- ann_column %>% 
+  mutate(Cluster_color = case_when(Cluster %in% c("Os3", "Os9","Os10","Os16","Os17",
+                                                  "At8","At28") ~ Cluster,
+                                   TRUE ~ "Other")) %>% select(Cluster_color)
+ann_colors = list(
+  Cluster_color = cols_nema_combined)
+
+
+heat_freq <- pheatmap(t(freq_orig), cluster_cols = FALSE,
+                      color=myColor, breaks = c(seq(0,100,2)),
+                      annotation_row = ann_column,
+                      annotation_colors=ann_colors,
+                      treeheight_row=0,treeheight_col=0,fontsize=5, 
+                      annotation_legend = FALSE,
+                      annotation_names_col = FALSE,
+                      annotation_names_row = FALSE,border_color=NA,legend = TRUE,show_rownames=TRUE,
+                      show_colnames=TRUE, angle_col = 90)
+
+```
+
+```{r}
+DimPlot(specie.combined.sct, group.by = "specie", shuffle = TRUE)+
+  scale_color_manual(values=cols_specie)
+```
+```{r}
+DimPlot(specie.combined.sct, group.by = "orig.ident", shuffle = TRUE)
+```
+```{r}
+DimPlot(specie.combined.sct, group.by = "Treatment", shuffle = TRUE)+
+  scale_color_manual(values=cols_treat)
+```
+```{r}
+specie.combined.sct@meta.data <-  specie.combined.sct@meta.data %>% 
+  mutate(Sp_tr = paste0(specie,"_",Treatment))
+```
+
+```{r}
+DimPlot(specie.combined.sct, group.by = "Sp_tr", shuffle = TRUE)
+```
+```{r}
+sessionInfo()
+```
+

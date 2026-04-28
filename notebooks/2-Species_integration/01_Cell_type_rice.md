@@ -42,7 +42,7 @@ merge_os_mock <- FindClusters(merge_os_mock, graph.name="SCT_snn",
     ## Running Louvain algorithm...
     ## Maximum modularity in 10 random starts: 0.9628
     ## Number of communities: 7
-    ## Elapsed time: 1 seconds
+    ## Elapsed time: 0 seconds
     ## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
     ## 
     ## Number of nodes: 12929
@@ -51,7 +51,7 @@ merge_os_mock <- FindClusters(merge_os_mock, graph.name="SCT_snn",
     ## Running Louvain algorithm...
     ## Maximum modularity in 10 random starts: 0.9452
     ## Number of communities: 10
-    ## Elapsed time: 1 seconds
+    ## Elapsed time: 0 seconds
     ## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
     ## 
     ## Number of nodes: 12929
@@ -69,7 +69,7 @@ merge_os_mock <- FindClusters(merge_os_mock, graph.name="SCT_snn",
     ## Running Louvain algorithm...
     ## Maximum modularity in 10 random starts: 0.9217
     ## Number of communities: 16
-    ## Elapsed time: 1 seconds
+    ## Elapsed time: 0 seconds
     ## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
     ## 
     ## Number of nodes: 12929
@@ -168,7 +168,7 @@ merge_os_mock <- FindClusters(merge_os_mock, graph.name="SCT_snn",
     ## Running Louvain algorithm...
     ## Maximum modularity in 10 random starts: 0.8566
     ## Number of communities: 29
-    ## Elapsed time: 1 seconds
+    ## Elapsed time: 0 seconds
 
 ``` r
 DimPlot(merge_os_mock, group.by = "SCT_snn_res.1.2", label = TRUE)
@@ -214,6 +214,7 @@ markers_dotplot<-p$data %>%
                                                            "Cortex",                                                       
                                                            "Phloem",
                                                            "Endodermis",
+                                                           "Pericycle_Endodermis",
                                                            "Pericycle",
                                                            "Xylem"))) %>% 
   arrange(factor(feature.groups, levels = c("Vascular initials",
@@ -227,6 +228,7 @@ markers_dotplot<-p$data %>%
                                             "Cortex",                                                       
                                             "Phloem",
                                             "Endodermis",
+                                            "Pericycle_Endodermis",
                                             "Pericycle",
                                             "Xylem"))) %>% 
   group_by(feature.groups) %>% 
@@ -254,7 +256,8 @@ dotplot_os_mock <- ggplot(data        = markers_dotplot,
                          axis.text.x=element_text(angle=90),
                          element_line(linewidth = 0.1),
                          strip.text.x = 
-                           element_text( margin = margin( b = 1, t = 6),size=10),
+                           element_text( margin = margin( b = 1, t = 6),
+                                         size=10),
                          panel.border = 
                            element_rect(colour = "black", fill=NA, 
                                         linewidth = 0.1),
@@ -334,8 +337,29 @@ plot_Os11g0539200<- FeaturePlot(merge_os_mock, features = "Os11g0539200",
     ## Adding another scale for colour, which will replace the existing scale.
 
 ``` r
+plot_Os05g0597100<- FeaturePlot(merge_os_mock, features = "Os05g0597100",
+                                pt.size = 0.05,order = TRUE)+
+  scale_colour_gradientn(colours=c("black", "magenta"))+theme_void()+
+  theme(legend.position="none")#+ggtitle(NULL)
+```
+
+    ## Scale for colour is already present.
+    ## Adding another scale for colour, which will replace the existing scale.
+
+``` r
+plot_Os03g0130300<- FeaturePlot(merge_os_mock, features = "Os03g0130300",
+                                pt.size = 0.05,order = TRUE)+
+  scale_colour_gradientn(colours=c("black", "magenta"))+theme_void()+
+  theme(legend.position="none")#+ggtitle(NULL)
+```
+
+    ## Scale for colour is already present.
+    ## Adding another scale for colour, which will replace the existing scale.
+
+``` r
 grid.arrange(plot_Os05g0438700, plot_Os06g0681600, plot_Os08g0115800,
-             plot_Os10g0454200, plot_Os11g0539200, plot_Os12g0569200, 
+             plot_Os10g0454200, plot_Os11g0539200, plot_Os12g0569200,
+             plot_Os05g0597100,plot_Os03g0130300,
              ncol=3)
 ```
 
